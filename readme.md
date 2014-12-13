@@ -3,8 +3,8 @@ Example of use:
 Define a standard transaction.
 
 std_trans pkh =
-  inputs 2 .>
-  ver [arg 0, arg 1] .>
+  inputs 2 .&
+  ver [arg 0, arg 1] .&
   eq [con pkh, hash [arg 1]]
 
 Compile to bitcoin script and print out. (Here 999 is the public key hash.)
