@@ -11,13 +11,12 @@
 module Utilities  where
 import System.Environment
 import Control.Monad
-import Data.Graph.Inductive
-import qualified Data.List.Ordered
 import Data.Tree
 import qualified Data.List
 import qualified Data.Map.Strict as Map
 import qualified Data.Hashable
 import Data.Maybe
+import Debug.Trace
 
 --combinators
 (-:):: a -> (a -> b) -> b
@@ -25,6 +24,17 @@ x -: f = f x
 
 doIf :: Bool -> (a -> a) -> (a -> a)
 doIf p f = (\x -> if p then f x else x)
+
+ifelselist:: [(Bool, a)] -> a -> a
+ifelselist li y = 
+  case li of 
+    [] -> y
+    ((b,x):li2) -> if b then x else ifelselist li2 y
+
+iflist :: [(Bool, a)] -> a
+iflist li = 
+  case li of 
+    ((b,x):li2) -> if b then x else iflist li2
 
 loopUntilFail :: (a -> Maybe a) -> a -> a
 loopUntilFail f x = 
@@ -73,10 +83,10 @@ listUpdatesFun p f li = map (\(i,x) -> doIf (p i) f x) (zip [1..] li)
 replaceSublist :: Int -> Int -> [a] -> [a] -> [a]
 replaceSublist m n li li2 =
       let 
-        front = take m li
-        back = drop (max m n) li
+        front = take m li2
+        back = drop (max m n) li2
       in
-        front ++ li2 ++ back
+        front ++ li ++ back
 
 listUpdate :: Int -> a -> [a] -> [a]
 listUpdate n x li = replaceSublist n (n+1) [x] li
@@ -148,3 +158,5 @@ mapSnd f (x,y) = (x, f y)
 
 mapFst :: (a -> b) -> (a,c) -> (b,c)
 mapFst f (x,y) = (f x, y)
+
+debug = flip trace

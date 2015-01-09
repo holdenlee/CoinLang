@@ -2,12 +2,17 @@ module Circuit where
 
 import Data.List
 import Data.Maybe
+import qualified Data.Map.Strict as M
 import Utilities
 
-data Gate a = Const a | Arg Int | Fun String Bool [Gate a]
+data Gate a = Const a | Arg Int | Fun String Bool [Gate a] | Var String
 --Fun f isSymmetric inputGates
 
 type Circuit a = [Gate a]
+type Circuit2 a = ([Gate a], M.Map String Int)
+
+--(!>)::Circuit2 a -> Int -> Gate a
+--c!>i = (fst c)!>i
 
 instance (Eq a) => Eq (Gate a) where
   Const x == Const y = x == y
@@ -19,20 +24,24 @@ instance (Show a) => Show (Gate a) where
   show (Const x) = "Const " ++ show x
   show (Arg x) = "Arg " ++ show x
   show (Fun str _ gs) = str ++ "(" ++ (intercalate "," (map show gs)) ++ ")"
+  show (Var x) = "Var " ++ x
 
 changeAt :: Int -> a -> [a] -> [a]
 changeAt i x li = (take i li)++[x]++(drop (i+1) li)
 
-replaceArgs' :: (Eq a) => Circuit a -> Gate a -> Gate a
-replaceArgs' c g = case g of
+replaceArgs' :: (Eq a) => Circuit2 a -> Gate a -> Gate a
+replaceArgs' (c,m) g = case g of
                     Const x -> Const x
                     Arg i -> Arg i 
-                    Fun s b li -> Fun s b (map (replaceArgs' c) li)
+                    Fun s b li -> Fun s b (map (replaceArgs' (c,m)) li)
+                    Var s -> Arg (lookup2 s m)
+--                    Var s -> c!!(lookup2 s m)
                                 --(map (replaceArgs' c) li)
 
-replaceArgs :: (Eq a) => Circuit a -> Circuit a
-replaceArgs circ = foldl
-                   (\c i -> changeAt i (replaceArgs' c (c!!i)) c) circ
+replaceArgs :: (Eq a) => Circuit2 a -> [Gate a]
+replaceArgs (circ,m) = foldl
+                   (\c i -> changeAt i (replaceArgs' (c,m) (c!!i)) c)
+                   circ
                    [0..(length circ - 1)]
 --map (replaceArgs' circ) circ
 --there's a subtle reason this doesn't work!
@@ -45,35 +54,39 @@ inTermsOfArgs' circ g = case g of
                            Fun s isSym (map (\gate -> Arg (removeJust (elemIndex gate circ))) li)
                            --Arg (removeJust (elemIndex (Const x) circ))
 
-inTermsOfArgs :: (Eq a) => Circuit a -> Circuit a
+inTermsOfArgs :: (Eq a) => [Gate a] -> [Gate a]
 inTermsOfArgs c = map (inTermsOfArgs' c) c  
 
-makeFun :: (Eq a) => String -> Bool -> [Circuit a] -> Circuit a
+makeFun :: (Eq a) => String -> Bool -> [Circuit2 a] -> Circuit2 a
 makeFun name isSym gates =
   let
-    (unioned, args) = foldl (\(u, as) li ->
+    (unioned, args) = foldl (\(u, as) (li,_) ->
                                  let
                                    u2 = union u li
                                      in (u2, as++[(last li)])) ([],[]) gates -- (tail li) u2
                       --Arg (removeJust (elemIndex (last li) u2))
   in
-   unioned ++ [Fun name isSym args]
+   (unioned ++ [Fun name isSym args],M.empty)
+
+set :: String -> Circuit2 a
+set var = ([], M.singleton var (-1))
 
 --in (u2, as++[last li])) ([],[]) gates
 
-(.&) :: (Eq a) => Circuit a -> Circuit a -> Circuit a
-circ .& more = (union circ (more))
+(.&) :: (Eq a) => Circuit2 a -> Circuit2 a -> Circuit2 a
+(circ,m1) .& (more,m2) = ((union circ (more)), m1 `M.union` (M.map (+(length circ)) m2))
 --replaceArgs 
 
-inputs:: Int -> Circuit Int
-inputs i = map Arg [0..(i-1)]
-
+inputs:: Int -> Circuit2 Int
+inputs i = (map Arg [0..(i-1)], M.empty)
 
 --add aliases so don't need the brackets inside
 
-arg x = [Arg x]
+arg x = ([Arg x], M.empty)
 
-con x = [Const x]
+con x = ([Const x], M.empty)
+
+var x = ([Var x], M.empty)
 
 --now need to compile script...
 removeArg:: Gate Int -> Int
