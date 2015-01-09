@@ -3,6 +3,7 @@
 
 *.hi
 *.o
+*.exe
 
 # Miscellaneous files #
 #######################
