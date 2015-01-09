@@ -3,18 +3,19 @@ module Circuit where
 import Data.List
 import Data.Maybe
 
-data Gate a = Const a | Arg Int | Fun String [Gate a]
+data Gate a = Const a | Arg Int | Fun String Bool [Gate a]
+--Fun f isSymmetric inputGates
 
 instance (Eq a) => Eq (Gate a) where
   Const x == Const y = x == y
   Arg x == Arg y = x == y
-  Fun s li == Fun s' li' = (s==s') && (li == li')
+  Fun s _ li == Fun s' _ li' = (s==s') && (li == li')
   _ == _ = False
 
 instance (Show a) => Show (Gate a) where
   show (Const x) = "Const " ++ show x
   show (Arg x) = "Arg " ++ show x
-  show (Fun str gs) = str ++ "(" ++ (intercalate "," (map show gs)) ++ ")"
+  show (Fun str _ gs) = str ++ "(" ++ (intercalate "," (map show gs)) ++ ")"
 
 type Circuit a = [Gate a]
 
@@ -39,15 +40,15 @@ inTermsOfArgs' :: (Eq a) => Circuit a -> Gate a -> Gate a
 inTermsOfArgs' circ g = case g of
                          Const x -> Const x
                          Arg i -> Arg i
-                         Fun s li -> 
-                           Fun s (map (\gate -> Arg (removeJust (elemIndex gate circ))) li)
+                         Fun s isSym li -> 
+                           Fun s isSym (map (\gate -> Arg (removeJust (elemIndex gate circ))) li)
                            --Arg (removeJust (elemIndex (Const x) circ))
 
 inTermsOfArgs :: (Eq a) => Circuit a -> Circuit a
 inTermsOfArgs c = map (inTermsOfArgs' c) c  
 
-makeFun :: (Eq a) => String -> [Circuit a] -> Circuit a
-makeFun name gates =
+makeFun :: (Eq a) => String -> Bool -> [Circuit a] -> Circuit a
+makeFun name isSym gates =
   let
     (unioned, args) = foldl (\(u, as) li ->
                                  let
@@ -55,7 +56,7 @@ makeFun name gates =
                                      in (u2, as++[(last li)])) ([],[]) gates -- (tail li) u2
                       --Arg (removeJust (elemIndex (last li) u2))
   in
-   unioned ++ [Fun name args]
+   unioned ++ [Fun name isSym args]
 
 --in (u2, as++[last li])) ([],[]) gates
 

@@ -1,9 +1,41 @@
+{-# OPTIONS
+ 
+ -XRankNTypes
+#-}
+
 module Compiler where
 
 import Data.List
 import Data.Maybe
 import Circuit
 import Data.Bimap
+import Utilities
+
+byList :: (forall a. (a -> d) -> [a] -> [a]) -> ((a -> d) -> ([a], [b]) -> ([a],[b]))
+byList f (as,bs) g = unzip $ f (\(x,y) -> g x) (zip as bs)
+
+byList2 :: (forall a. (a -> d) -> [a] -> a) -> ((a -> d) -> ([a], [b]) -> (a,b))
+byList2 f (as,bs) g = f (\(x,y) -> g x) (zip as bs)
+
+revneg :: [Int] -> [Int]
+revneg = reverse $ map (\x -> -x)
+
+isSym :: Gate a -> Bool
+isSym g = case g of 
+               Fun f True args -> True
+               _ -> False
+
+sortIfSym :: Gate a -> [Int] -> [Int]
+sortIfSym g xs = if isSym g then sort xs else xs
+
+--data StackPos = OnStack (Bool, Int, Int) | IsConst (deriving Eq)
+--instance Comparable StackPos where
+--    compare s1 s2 = 
+
+type BI = Bimap Int Int
+
+indexToStackPos :: BI -> Int -> Int
+indexToStackPos b i = removeJust $ lookup i b
 
 compile:: Circuit Int -> String
 compile circ = let
@@ -12,7 +44,8 @@ compile circ = let
     --the number of args is the largest initial sublist all in the form Arg x
     numArgs = length (takeWhile (\x -> case x of Arg y -> True
                                                  _ -> False) circ2)
-    indexOfGates = [0..(length circ2 - 1)]
+    bimap::Bimap Int Int
+    bimap = empty
     inList::[[Int]]
     --inList!!j is a list of all gates leading to j
     inList = map (\x -> case x of Fun s li -> map removeArg li
@@ -20,28 +53,121 @@ compile circ = let
                  ) circ2
     --outList!!j is a list of all gates leading from j
     outList = map (\i -> findIndices (\j -> i `elem` (inList!!j)) [0..(length circ2 - 1)]) [0..(length circ2 - 1)]
-    (prog, is) = foldl 
-                      --at index i
-                      --indexs!!j is the position of gate j in the stack.
-                       (\(str,indexs) i ->
-                        --if it's a function
-                        case circ2!!i of
-                         Fun name args ->
-                          let
-                            --true if this argument is not an input for any later ones
-                            appearsAgain = not (all (\x -> not (i `elem` x)) (drop (i+1) inList))
-                            --if this does not appear again, then we will remove it from the stack immediately afterwards, so do not increase the stack index. If it does, then the stack index will be 1 more than the previous. (Might change this behavior...)
-                            indices2 = changeAt i (if appearsAgain then (indexs!!(i-1) + 1) else (indexs!!(i-1))) indexs
-                            --consider the 0th argument of the f of the given gate. If it's Arg x, how far is it back in the stack? It's indexs!!(i-1) + 1 - indexs!!x. Now add j for the jth argument because we're rolling things on top of the stack.
-                            picknums = map (\(j,x) -> (indexs!!(i-1)) + j + 1 - (indices2!!x)) (zip [0..] (inList!!i))
-                            -- zip with j?
-                          in
-                           (str ++ concat (map (\x -> " " ++ show x ++ " OP_PICK") picknums) ++ " " ++ name ++ (if appearsAgain || (i==length circ2 - 1) then "" else " OP_VERIFY"), indices2)
-                         Const y -> (str ++ " " ++ show y, changeAt i (indexs!!(i-1) + 1) indexs)
-                        ) ("", indexOfGates) [numArgs..(length circ2 - 1)]
-  in
-     prog
--- ++ show inList ++ show outList ++ show is
+    (prog, _, _, _) = loopUntil
+                 (\(_,_,_,z) -> and z) --all z are True
+                 (\(str, b, top, dones) ->
+                  let
+                      --the indices of gates not evaluated yet
+                      unevalInds = findIndices not dones
+                      --the input lists of those gates
+                      unevalIns = zipWith (!!) inList unevalInds
+                      filterOutConsts::[Int] -> Maybe [Int]
+                      filterOutConsts ins = 
+                          sequence $ do
+                            x <- ins
+                            y <- if (dones!!x) 
+                                 then [x]
+                                 -- if x has already been processed, return x.
+                                      else
+                                          case circ2!!x of
+                                            --if it refers to a constant, we're OK.
+                                            Const y -> []
+                                            --else we can't include this gate yet.
+                                            _ -> [Nothing]
+                            return y
+                      --retain only those indices and corresponding input lists that have all arguments either evaluated already, or constants.
+                      (unevalIns2, unevalInds2) = (byList (filter isJust)) (map filterOutConsts unevalIns, unevalInds)
+                      unevalIns3 = map removeJust unevalIns2
+                      --if the program runs correctly there should be no problem with the removeJust
+                      --look up the stack positions of those indices
+                      stackPoss = map (removeJust.(flip lookup b)) unevalIns3
+                      stackPoss2 = map (\(i,ss) -> if isSym circ2!!i then sort ss else ss) $ zip unevalInds2 stackPoss
+                      (bestInd, bestSP) = (mapSnd revneg) (byList2 minimum) ((map revneg) stackPoss2, unevalInds2)
+                      --this is the index of the next guy, and the stack positions of its arguments
+                      --origB::Bimap Int Int
+                      --origB = fromList $ zip unevalInds unevalIns
+                      --origIns = removeJust $ lookup bestInd origB
+                      inps = inList!!bestInd
+                      constInds = inps \\ unevalIns3
+                      --(str2,b2,top2,dones2) = foldIterate (addConstToStack circ2) constInds ("",b,top,dones)
+                      willAppears = map (willBeUsedAgain outs dones) origIns
+                      topB = case (circ2!!bestInd) of
+                               --symmetric case
+                               Fun _ True _ ->
+                                   stopBefore (\i -> i<0 || (indexToStackPos b i)) (\x -> x-1)  0
+                               --not symmetric case
+                               _ -> 
+                                   if loopUntil (\(expected,i) -> (not dones!!(inps!!i))|| (i/=0 && (circ2!!(inps!!i) == expected))) (\(expected,i) -> (indexToStackPos b (inps!!i) + 1,i+1) (0,0)) == top + 1 then indexToStackPos b 0 else top + 1
+                      (b2,inps2) = --(str2, b2, top2, dones2) = 
+                           case (circ2!!bestInd) of
+                            Fun _ True _ -> 
+                                foldIterate (\i (b1,i1) -> (delete i b1,delete i i1)) (map (\i -> removeJust.(lookupR i b)) [topB..top]) (b,inps)
+--make them done?
+                            _ -> (b,inps)
+                      --should do something like this before.
+                      (str3, b3, btemp3, top3, dones3) = foldIterate (process circ2 outList) inps (str, b, b2, top, dones)
+                      b4 = b3 |> insert bestInd (top3 + 1)
+                      -- warning: this doesn't take it off.
+                      top4 = top3 + 1
+                      dones4 = listUpdate bestInd True dones3
+                      str4 = case circ2!!bestInd of
+                               Fun f _ _ -> str3 ++ f
+                               _ -> str3
+                  in (str4, b4, top4, dones4)) ("", bimap, 0, replicate (length circ2) False)
+
+willBeUsedAgain :: [[Int]] -> [Bool] -> Int -> Bool
+willBeUsedAgain outs dones i =
+    (length (filter (\j -> not (dones!!j)) (outs!!i)) > 1)    
+
+--permanent BI, temporary BI
+process :: Circuit Int -> [[Int]] -> Int -> (String, BI, BI, Int, [Int]) -> (String, BI, BI, Int, [Int])
+process circ outs i (str, b, btemp, top, dones) =
+    let
+        --stack position
+        sp = indexToStackPos circ i
+        d = dones!!i
+        dones2 = listUpdate i True dones
+        case circ!!i of
+          Const x -> 
+              let 
+                  str2 = str ++ (show x) ++ " "
+                  btemp2 = btemp |> insert i (top + 1)
+                  top2= top + 1
+              in
+                (str2, b, btemp2, top, dones2)
+          _ -> 
+             if willBeUsedAgain outs dones i
+                then 
+                    let
+                        str2 = str ++ "OP_ROLL " ++ show (top - sp + 1) ++ " "
+                        btemp2 = btemp |> insert i (top + 1)
+                    in (str2, b, btemp2, top, dones2)
+     --if done, then move (with consequences)
+                else
+                    let
+                        str2 = str ++ "OP_PICK " ++ show (top - sp + 1) ++ " "
+                        b2 = b |> delete i |> bmapR (\x -> if x>i then x-1 else x)
+                        btemp2 = btemp |> bmapR (\x -> iflist [(x>i, x-1),
+                                                              (x==i, top),
+                                                              (x<i, x)])
+                        top2 = top + 1
+                    in (str2, b2, btemp2, top2, dones2)
+        
+      
+
+--add the constant at index i to the top of the stack
+addConstToStack :: Circuit Int -> Int -> (String, Bimap Int Int, Int, [Int]) -> (String, Circ
+addConstToStack circ i (str, b, top, dones) = 
+    let 
+        c = case circ!!i of
+              Const x -> x
+              _ -> 0 --shouldn't happen
+        str2 = str ++ " " ++ (show circ)
+        b2 = insert i (top + 1) b
+        top2 = top + 1
+        dones2 = listUpdate i True dones
+    in
+      (str2,b2,top2,dones2)
 
 ifelselist:: [(Bool, a)] -> a -> a
 ifelselist li y = 
