@@ -2,9 +2,12 @@ module Circuit where
 
 import Data.List
 import Data.Maybe
+import Utilities
 
 data Gate a = Const a | Arg Int | Fun String Bool [Gate a]
 --Fun f isSymmetric inputGates
+
+type Circuit a = [Gate a]
 
 instance (Eq a) => Eq (Gate a) where
   Const x == Const y = x == y
@@ -17,8 +20,6 @@ instance (Show a) => Show (Gate a) where
   show (Arg x) = "Arg " ++ show x
   show (Fun str _ gs) = str ++ "(" ++ (intercalate "," (map show gs)) ++ ")"
 
-type Circuit a = [Gate a]
-
 changeAt :: Int -> a -> [a] -> [a]
 changeAt i x li = (take i li)++[x]++(drop (i+1) li)
 
@@ -26,7 +27,7 @@ replaceArgs' :: (Eq a) => Circuit a -> Gate a -> Gate a
 replaceArgs' c g = case g of
                     Const x -> Const x
                     Arg i -> Arg i 
-                    Fun s li -> Fun s (map (replaceArgs' c) li)
+                    Fun s b li -> Fun s b (map (replaceArgs' c) li)
                                 --(map (replaceArgs' c) li)
 
 replaceArgs :: (Eq a) => Circuit a -> Circuit a
@@ -60,9 +61,6 @@ makeFun name isSym gates =
 
 --in (u2, as++[last li])) ([],[]) gates
 
-(|>) :: a -> (a -> b) -> b
-x |> f = f x
-
 (.&) :: (Eq a) => Circuit a -> Circuit a -> Circuit a
 circ .& more = (union circ (more))
 --replaceArgs 
@@ -78,10 +76,6 @@ arg x = [Arg x]
 con x = [Const x]
 
 --now need to compile script...
-
-removeJust:: Maybe a -> a
-removeJust x = case x of Just y -> y
-
 removeArg:: Gate Int -> Int
 removeArg circ = case circ of Arg z -> z
 

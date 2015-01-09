@@ -35,7 +35,7 @@ sortIfSym g xs = if isSym g then sort xs else xs
 type BI = Bimap Int Int
 
 indexToStackPos :: BI -> Int -> Int
-indexToStackPos b i = removeJust $ lookup i b
+indexToStackPos b i = removeJust $ Data.Bimap.lookup i b
 
 compile:: Circuit Int -> String
 compile circ = let
@@ -76,11 +76,11 @@ compile circ = let
                                             _ -> [Nothing]
                             return y
                       --retain only those indices and corresponding input lists that have all arguments either evaluated already, or constants.
-                      (unevalIns2, unevalInds2) = (byList (filter isJust)) (map filterOutConsts unevalIns, unevalInds)
+                      (unevalIns2, unevalInds2) = (byList (Data.List.filter isJust)) (map filterOutConsts unevalIns, unevalInds)
                       unevalIns3 = map removeJust unevalIns2
                       --if the program runs correctly there should be no problem with the removeJust
                       --look up the stack positions of those indices
-                      stackPoss = map (removeJust.(flip lookup b)) unevalIns3
+                      stackPoss = map (removeJust.(flip Data.Bimap.lookup b)) unevalIns3
                       stackPoss2 = map (\(i,ss) -> if isSym circ2!!i then sort ss else ss) $ zip unevalInds2 stackPoss
                       (bestInd, bestSP) = (mapSnd revneg) (byList2 minimum) ((map revneg) stackPoss2, unevalInds2)
                       --this is the index of the next guy, and the stack positions of its arguments
@@ -90,7 +90,7 @@ compile circ = let
                       inps = inList!!bestInd
                       constInds = inps \\ unevalIns3
                       --(str2,b2,top2,dones2) = foldIterate (addConstToStack circ2) constInds ("",b,top,dones)
-                      willAppears = map (willBeUsedAgain outs dones) origIns
+                      willAppears = map (willBeUsedAgain outList dones) inps
                       topB = case (circ2!!bestInd) of
                                --symmetric case
                                Fun _ True _ ->
@@ -101,12 +101,12 @@ compile circ = let
                       (b2,inps2) = --(str2, b2, top2, dones2) = 
                            case (circ2!!bestInd) of
                             Fun _ True _ -> 
-                                foldIterate (\i (b1,i1) -> (delete i b1,delete i i1)) (map (\i -> removeJust.(lookupR i b)) [topB..top]) (b,inps)
+                                foldIterate (\i (b1,i1) -> (Data.Bimap.delete i b1,Data.List.delete i i1)) (map (\i -> removeJust.(lookupR i b)) [topB..top]) (b,inps)
 --make them done?
                             _ -> (b,inps)
                       --should do something like this before.
                       (str3, b3, btemp3, top3, dones3) = foldIterate (process circ2 outList) inps (str, b, b2, top, dones)
-                      b4 = b3 |> insert bestInd (top3 + 1)
+                      b4 = b3 |> Data.Bimap.insert bestInd (top3 + 1)
                       -- warning: this doesn't take it off.
                       top4 = top3 + 1
                       dones4 = listUpdate bestInd True dones3
@@ -114,10 +114,11 @@ compile circ = let
                                Fun f _ _ -> str3 ++ f
                                _ -> str3
                   in (str4, b4, top4, dones4)) ("", bimap, 0, replicate (length circ2) False)
+  in prog
 
 willBeUsedAgain :: [[Int]] -> [Bool] -> Int -> Bool
 willBeUsedAgain outs dones i =
-    (length (filter (\j -> not (dones!!j)) (outs!!i)) > 1)    
+    (length (Data.List.filter (\j -> not (dones!!j)) (outs!!i)) > 1)    
 
 --permanent BI, temporary BI
 process :: Circuit Int -> [[Int]] -> Int -> (String, BI, BI, Int, [Int]) -> (String, BI, BI, Int, [Int])
@@ -127,11 +128,12 @@ process circ outs i (str, b, btemp, top, dones) =
         sp = indexToStackPos circ i
         d = dones!!i
         dones2 = listUpdate i True dones
+    in
         case circ!!i of
           Const x -> 
               let 
                   str2 = str ++ (show x) ++ " "
-                  btemp2 = btemp |> insert i (top + 1)
+                  btemp2 = btemp |> Data.Bimap.insert i (top + 1)
                   top2= top + 1
               in
                 (str2, b, btemp2, top, dones2)
@@ -140,34 +142,19 @@ process circ outs i (str, b, btemp, top, dones) =
                 then 
                     let
                         str2 = str ++ "OP_ROLL " ++ show (top - sp + 1) ++ " "
-                        btemp2 = btemp |> insert i (top + 1)
+                        btemp2 = btemp |> Data.Bimap.insert i (top + 1)
                     in (str2, b, btemp2, top, dones2)
      --if done, then move (with consequences)
                 else
                     let
                         str2 = str ++ "OP_PICK " ++ show (top - sp + 1) ++ " "
-                        b2 = b |> delete i |> bmapR (\x -> if x>i then x-1 else x)
+                        b2 = b |> Data.Bimap.delete i |> bmapR (\x -> if x>i then x-1 else x)
                         btemp2 = btemp |> bmapR (\x -> iflist [(x>i, x-1),
                                                               (x==i, top),
                                                               (x<i, x)])
                         top2 = top + 1
                     in (str2, b2, btemp2, top2, dones2)
         
-      
-
---add the constant at index i to the top of the stack
-addConstToStack :: Circuit Int -> Int -> (String, Bimap Int Int, Int, [Int]) -> (String, Circ
-addConstToStack circ i (str, b, top, dones) = 
-    let 
-        c = case circ!!i of
-              Const x -> x
-              _ -> 0 --shouldn't happen
-        str2 = str ++ " " ++ (show circ)
-        b2 = insert i (top + 1) b
-        top2 = top + 1
-        dones2 = listUpdate i True dones
-    in
-      (str2,b2,top2,dones2)
 
 ifelselist:: [(Bool, a)] -> a -> a
 ifelselist li y = 
@@ -210,22 +197,4 @@ lexCompare xs ys =
 
 bmapR:: (b -> b) -> Bimap a b -> Bimap a b
 bmapR f bmap = fromList $ map (\(x,y) -> (x,f y)) (toList bmap)
-
-pick::Int -> (Circuit a,Bimap Int Int,Int) -> (Bimap Int Int,Int,String)
-pick i (c,bmap,top) = 
-  let 
-    rot = \x -> if x==i then top else (if x>i then i-1 else x)
-    bmap2 = bmapR rot bmap
-  in
-    (bmap2,top+1, "OP_PICK "++(show (top-i)))
---or is it top-i+1?
-
-
---
-nextEval::Circuit a -> [Int] -> [Bool] -> Bool -> [Int] -> ([Int], String)
-nextEval c inds appAgains isSym inps = ([],"")
---also include: symmetric or not
---example: 321 TTT will roll all 3
---321 FFF will use up all 3
---12 FT will roll 2 to top  
 

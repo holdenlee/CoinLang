@@ -8,7 +8,7 @@
  -XPolyKinds
 #-}
 
-module Utilities ((-:), doIf, removeJust, removeJustWithDefault, justRight, lookup2, insertMultiple, loopUntilFail, loopUntil, stopBefore, listUpdate, listUpdateFun, replaceSublist, filterJust, filterZip, cofilter, lookupList, lookupList2, mlookup, (*>), tryWithDefault, foldIterate, foldIterate2, sublist, (|>), (<|)) where
+module Utilities  where
 import System.Environment
 import Control.Monad
 import Data.Graph.Inductive
@@ -16,8 +16,6 @@ import qualified Data.List.Ordered
 import Data.Tree
 import qualified Data.List
 import qualified Data.Map.Strict as Map
-import Search
-import MathParser
 import qualified Data.Hashable
 import Data.Maybe
 
@@ -137,10 +135,16 @@ sublist m n ls =  take (n-m) . drop m $ ls
 map2 :: (a -> b -> c) -> [a] -> [b] -> [c]
 map2 = zipWith
 
-infixr 0 (<|)
+infixr 0 <|
 (<|) :: (a -> b) -> a -> b
 (<|) = ($)
 
-infixl 0 (|>)
+infixl 0 |>
 (|>) :: a -> (a -> b) -> b
 x |> f = f x
+
+mapSnd :: (a -> b) -> (c, a) -> (c,b)
+mapSnd f (x,y) = (x, f y)
+
+mapFst :: (a -> b) -> (a,c) -> (b,c)
+mapFst f (x,y) = (f x, y)
