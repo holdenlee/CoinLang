@@ -18,7 +18,9 @@ OR
 Compile to bitcoin script and print out using the following. (Here 999 is the public key hash.)
 
     main = putStrLn (compile (std_trans 999))
-  
+
+See ScriptDefs.hs for how to include various script functions.
+
 Todo:
 
 * Compile if-then-else statements.

@@ -41,7 +41,7 @@ inS' k n =
   size [arg 0],
 --set it equal to s
   set "s",
---is s in the interval [8k, 8(k+n-1)]?
+--is s in the interval [8k, 8(k+n-1)]? (Note constants must be marked with 'con'
   within [s, con (8*k), con (8*(k+n-1)+1)],
 --is s mod 8 = 0?
   (s .% con 8) .= con 0]
