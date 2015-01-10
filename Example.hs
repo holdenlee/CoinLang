@@ -14,14 +14,21 @@ std_trans pkh =
 
 testC::Circuit2 Int -> IO ()
 testC c = do
-  putStrLn ("Circuit: "++(show c))
-  putStrLn ("Circuit replaced: "++(show $ replaceArgs c))
-  putStrLn ("Circuit in terms of args: "++(show $ inTermsOfArgs $ replaceArgs c))
-  putStrLn ("Var bindings"++((\(x,y) -> show y) c))
+  --putStrLn ("Circuit: "++(show c))
+  --putStrLn ("Circuit replaced: "++(show $ replaceArgs c))
+  --putStrLn ("Circuit in terms of args: "++(show $ inTermsOfArgs $ replaceArgs c))
+  --putStrLn ("Var bindings"++((\(x,y) -> show y) c))
   putStrLn (compile c)
 
 main::IO ()
-main = test3
+main = test >> test2 >> test3 >> test4
+{-
+Should give
+OP_DUP OP_HASH160 999 OP_EQUALVERIFY OP_CHECKSIG
+999 f
+2 OP_ROLL 2 OP_ROLL f 999 1 OP_PICK g
+f g
+-}
 
 test::IO ()
 test = testC $ std_trans 999

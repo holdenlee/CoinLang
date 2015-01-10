@@ -159,4 +159,5 @@ mapSnd f (x,y) = (x, f y)
 mapFst :: (a -> b) -> (a,c) -> (b,c)
 mapFst f (x,y) = (f x, y)
 
-debug = flip trace
+debug x y = x
+--flip trace
