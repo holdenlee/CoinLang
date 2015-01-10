@@ -84,6 +84,12 @@ set var = ([], M.singleton var (-1))
 inputs:: Int -> Circuit2 Int
 inputs i = (map Arg [0..(i-1)], M.empty)
 
+inputvars:: [String] -> Circuit2 Int
+inputvars li = let 
+    l = length li - 1
+ in
+    (map Arg [0..l], M.fromList $ zip li [0..l])
+
 --add aliases so don't need the brackets inside
 
 arg x = ([Arg x], M.empty)
@@ -95,6 +101,8 @@ var x = ([Var x], M.empty)
 --now need to compile script...
 removeArg:: Gate Int -> Int
 removeArg circ = case circ of Arg z -> z
+
+
 
 
                         

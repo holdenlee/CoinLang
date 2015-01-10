@@ -220,3 +220,7 @@ postProcess s = foldl (\x (y,z) -> replace y z x) s
                       ["OP_EQUAL","OP_NUMEQUAL","OP_CHECKSIG","OP_CHECKMULTISIG"])
 --http://stackoverflow.com/questions/14907600/how-to-replace-a-string-with-another-in-haskell
 
+fun::Circuit2 Int -> ([Circuit2 Int] -> Circuit2 Int)
+fun f = makeFun (reverse $ tail $ reverse $ compile f) False
+--delete the space at the end
+
