@@ -29,19 +29,21 @@ instance (Show a) => Show (Gate a) where
 changeAt :: Int -> a -> [a] -> [a]
 changeAt i x li = (take i li)++[x]++(drop (i+1) li)
 
-replaceArgs' :: (Eq a) => Circuit2 a -> Gate a -> Gate a
-replaceArgs' (c,m) g = case g of
+--Bool: is it the 1st time?
+replaceArgs' :: (Eq a) => Bool -> Circuit2 a -> Gate a -> Gate a
+replaceArgs' b (c,m) g = case g of
                     Const x -> Const x
                     Arg i -> Arg i 
-                    Fun s b li -> Fun s b (map (replaceArgs' (c,m)) li)
-                    Var s -> c!!(lookup2 s m)
+                    Fun s b li -> Fun s b (map (replaceArgs' False (c,m)) li)
+                    Var s -> if b then Var s else c!!(lookup2 s m)
+--c!!(lookup2 s m)
 --Arg (lookup2 s m)
 --                    Var s -> c!!(lookup2 s m)
                                 --(map (replaceArgs' c) li)
 
 replaceArgs :: (Eq a) => Circuit2 a -> [Gate a]
 replaceArgs (circ,m) = foldl
-                   (\c i -> changeAt i (replaceArgs' (c,m) (c!!i)) c)
+                   (\c i -> changeAt i (replaceArgs' True (c,m) (c!!i)) c)
                    circ
                    [0..(length circ - 1)]
 --map (replaceArgs' circ) circ
@@ -53,6 +55,7 @@ inTermsOfArgs' circ g = case g of
                          Arg i -> Arg i
                          Fun s isSym li -> 
                            Fun s isSym (map (\gate -> Arg (removeJust (elemIndex gate circ))) li)
+                         Var s -> Var s
                            --Arg (removeJust (elemIndex (Const x) circ))
 
 inTermsOfArgs :: (Eq a) => [Gate a] -> [Gate a]

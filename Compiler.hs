@@ -51,7 +51,8 @@ compile circ = let
                                                  _ -> False) circ2) `debug` ("circ2: "++show circ2)
     --ignore the variables
     dones0 = map (\(i,g) -> case g of 
-                              Arg x -> True
+                              Arg _ -> True
+                              Var _ -> True
                               _ -> False
                  ) 
              (zip [0..] circ2)
