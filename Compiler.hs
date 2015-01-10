@@ -102,7 +102,7 @@ stepCompile circ2 inList outList (str, b, top, dones) =
                       --if the program runs correctly there should be no problem with the removeJust
                       --look up the stack positions of those indices
                       --does not take into account the savings you get from things at the top that will not be used any longer...
-                      stackPoss = map2d (removeJust.(flip Data.Bimap.lookup b)) unevalIns3 `debug` ("unevalIns3" ++ show unevalIns3)
+                      stackPoss = map2d (removeJust.(flip Data.Bimap.lookup b)) (unevalIns3 `debug` ("unevalIns3" ++ show unevalIns3))
                       stackPoss2 = map (\(i,ss) -> if isSym (circ2!!i) then sort ss else ss) $ zip unevalInds2 stackPoss `debug` ("sp: "++ show stackPoss)
                       (bestSP, (bestIns,bestInd)) = (mapFst revneg) $ minimum $ zip ((map revneg) stackPoss2) $ zip unevalIns3 unevalInds2
                       --this is the index of the next guy, and the stack positions of its arguments
@@ -129,7 +129,7 @@ stepCompile circ2 inList outList (str, b, top, dones) =
                                           (\(expected,i) -> ((indexToStackPos b (inps!!i)) + 1,i + 1)) 
                                           (0,0))
                                           == top + 1 
-                                    then indexToStackPos b 0 
+                                    then indexToStackPos b (inps!!0) 
                                     else top + 1
                       (b2,inps2) = --(str2, b2, top2, dones2) = 
                            case (circ2!!bestInd) of
@@ -194,7 +194,7 @@ process circ outs i (str, b, btemp, top, dones) =
                     let
                         --PICK means copy
                         n = top - sp + 1
-                        s = if n==1 then "OP_DUP" else  "OP_PICK " ++ show (top - sp + 1)
+                        s = if n==1 then "OP_DUP" else show (top - sp) ++ " OP_PICK "
                         str2 = str ++ s ++ " "
                         btemp2 = btemp |> Data.Bimap.insert i (top + 1)
                         top2 = top + 1
@@ -202,7 +202,7 @@ process circ outs i (str, b, btemp, top, dones) =
      --if done, then move (with consequences)
                 else
                     let
-                        str2 = str ++ "OP_ROLL " ++ show (top - sp + 1) ++ " "
+                        str2 = str ++ show (top - sp) ++ " OP_ROLL "
                         b2 = b |> Data.Bimap.delete i |> bmapR (\x -> if x>i then x-1 else x)
                         btemp2 = btemp |> bmapR (\x -> iflist [(x>i, x-1),
                                                               (x==i, top),

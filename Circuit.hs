@@ -34,7 +34,8 @@ replaceArgs' (c,m) g = case g of
                     Const x -> Const x
                     Arg i -> Arg i 
                     Fun s b li -> Fun s b (map (replaceArgs' (c,m)) li)
-                    Var s -> Arg (lookup2 s m)
+                    Var s -> c!!(lookup2 s m)
+--Arg (lookup2 s m)
 --                    Var s -> c!!(lookup2 s m)
                                 --(map (replaceArgs' c) li)
 

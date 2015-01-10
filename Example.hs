@@ -14,17 +14,20 @@ std_trans pkh =
 
 testC::Circuit2 Int -> IO ()
 testC c = do
-  putStrLn (show c)
-  putStrLn (show $ inTermsOfArgs $ replaceArgs c)
+  putStrLn ("Circuit: "++(show c))
+  putStrLn ("Circuit replaced: "++(show $ replaceArgs c))
+  putStrLn ("Circuit in terms of args: "++(show $ inTermsOfArgs $ replaceArgs c))
+  putStrLn ("Var bindings"++((\(x,y) -> show y) c))
   putStrLn (compile c)
 
 main::IO ()
-main = test2
+main = test3
 
 test::IO ()
 test = testC $ std_trans 999
 
 f = makeFun "f" True
+g = makeFun "g" False
 
 f2::Int -> Circuit2 Int
 f2 z =
@@ -33,3 +36,19 @@ f2 z =
 
 test2:: IO()
 test2 = testC (f2 999)
+
+f3::Int -> Circuit2 Int
+f3 z =
+  inputs 3 .&
+  f [arg 0, arg 1] .&
+  set "a" .&
+  g [var "a", con z, var "a"]
+
+test3 = testC (f3 999)
+
+f4::Circuit2 Int
+f4 = 
+    inputs 1 .&
+    g [f [arg 0]]
+
+test4 = testC f4
