@@ -85,7 +85,7 @@ compute k n a b a' b' h_A h_B =
 
 testC::Circuit2 Int -> IO ()
 testC c = do
-  putStrLn ("Circuit: "++(show c))
+{-  putStrLn ("Circuit: "++(show c))
   putStrLn ("Circuit replaced: "++(show $ replaceArgs c))
   let c' =  inTermsOfArgs $ replaceArgs c
   putStrLn ("Circuit in terms of args: "++(show c'))
@@ -93,7 +93,7 @@ testC c = do
                                  _ -> []
                  ) c'
   putStrLn ("dot graph: "++ (c' |> (circToGraph ins) |> graphToDot))
-  putStrLn ("Var bindings"++((\(x,y) -> show y) c))
+  putStrLn ("Var bindings"++((\(x,y) -> show y) c))-}
   putStrLn (compile c)
 
 main = testC (compute 3 2 30 40 50 60 70 80)
