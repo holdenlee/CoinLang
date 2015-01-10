@@ -10,6 +10,7 @@ data Gate a = Const a | Arg Int | Fun String Bool [Gate a] | Var String
 
 type Circuit a = [Gate a]
 type Circuit2 a = ([Gate a], M.Map String Int)
+type Function a = [Circuit2 a] -> Circuit2 a
 
 --(!>)::Circuit2 a -> Int -> Gate a
 --c!>i = (fst c)!>i
@@ -77,9 +78,12 @@ set var = ([], M.singleton var (-1))
 
 --in (u2, as++[last li])) ([],[]) gates
 
-(.&) :: (Eq a) => Circuit2 a -> Circuit2 a -> Circuit2 a
-(circ,m1) .& (more,m2) = ((union circ (more)), m1 `M.union` (M.map (+(length circ)) m2))
+(.>) :: (Eq a) => Circuit2 a -> Circuit2 a -> Circuit2 a
+(circ,m1) .> (more,m2) = ((union circ (more)), m1 `M.union` (M.map (+(length circ)) m2))
 --replaceArgs 
+
+script :: (Eq a) => [Circuit2 a] -> Circuit2 a
+script = foldl1 (.>)
 
 inputs:: Int -> Circuit2 Int
 inputs i = (map Arg [0..(i-1)], M.empty)

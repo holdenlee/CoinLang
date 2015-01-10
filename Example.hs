@@ -8,8 +8,8 @@ import Compiler
 
 std_trans::Int -> Circuit2 Int
 std_trans pkh =
-  inputs 2 .&
-  ver [arg 0, arg 1] .&
+  inputs 2 .>
+  ver [arg 0, arg 1] .>
   eq [con pkh, hash [arg 1]]
 
 testC::Circuit2 Int -> IO ()
@@ -39,7 +39,7 @@ g = makeFun "g" False
 
 f2::Int -> Circuit2 Int
 f2 z =
-  inputs 1 .&
+  inputs 1 .>
   f [con z, arg 0]
 
 test2:: IO()
@@ -47,16 +47,16 @@ test2 = testC (f2 999)
 
 f3::Int -> Circuit2 Int
 f3 z =
-  inputs 3 .&
-  f [arg 0, arg 1] .&
-  set "a" .&
+  inputs 3 .>
+  f [arg 0, arg 1] .>
+  set "a" .>
   g [var "a", con z, var "a"]
 
 test3 = testC (f3 999)
 
 f4::Circuit2 Int
 f4 = 
-    inputs 1 .&
+    inputs 1 .>
     g [f [arg 0]]
 
 test4 = testC f4
@@ -65,7 +65,7 @@ std_trans_f = fun (std_trans 999)
 
 f5::Circuit2 Int
 f5 = 
-    inputs 3 .&
+    inputs 3 .>
     g [std_trans_f [arg 0, arg 2], arg 1]
 
 test5 = testC f5

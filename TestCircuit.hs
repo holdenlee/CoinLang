@@ -16,9 +16,9 @@ g = makeFun "g" True
 
 test::Int -> Circuit2 Int
 test z =
-  inputs 2 .&
-  f [arg 0, arg 1] .&
-  set "w" .&
+  inputs 2 .>
+  f [arg 0, arg 1] .>
+  set "w" .>
   g [var "w", var "w", con z]
 
 main::IO ()

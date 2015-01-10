@@ -4,6 +4,7 @@
 *.hi
 *.o
 *.exe
+*.pdf
 
 # Miscellaneous files #
 #######################
