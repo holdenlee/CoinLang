@@ -125,7 +125,7 @@ stepCompile circ2 inList outList (str, b, top, dones) =
                                --not symmetric case
                                _ -> 
                                    if snd (loopUntil 
-                                          (\(expected,i) -> i>=(length inps) `debug` (show i) || (willAppears!!(inps!!i))|| (i/=0 && ((removeJust $ Data.Bimap.lookup (inps!!i) b) /= expected)))
+                                          (\(expected,i) -> i>=(length inps) `debug` (show i ++ " " ++ show b) || (willAppears!!(inps!!i))|| (i/=0 && ((removeJust $ Data.Bimap.lookup (inps!!i) b) /= expected)))
 --loop until: we've exhaused all inputs, or we find something that will appear again, or we're not on the 0th index and we find something that's not one more than previous stack position (the expected)
                                           (\(expected,i) -> ((indexToStackPos b (inps!!i)) + 1,i + 1)) 
                                           (0,0))
