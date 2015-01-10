@@ -14,8 +14,8 @@ std_trans pkh =
   ver [arg 0, arg 1] .>
   eq [con pkh, hash [arg 1]]
 
-std_trans_f x = makeFun "OP_CHECKSIG" False
---fun (std_trans x)
+--std_trans_f x = makeFun "OP_CHECKSIG" False
+std_trans_f x = fun (std_trans x)
 
 {-
 commit x pk_c pk_p = 
@@ -30,6 +30,7 @@ commit x pk_c pk_p =
            ver [arg 0, pk_c],
            ver [arg 1, pk_p]])]
 -}
+
 s = var "s"
 --k is security parameter, n is number of people
 inS' k n = 
@@ -46,8 +47,8 @@ inS' k n =
   (s .% con 8) .= con 0]
 
 --"compile" the function inSk' so that it can be used in other scripts.
---inS k n = fun (inS' k n)
-inS k n = makeFun "inSkN" False
+inS k n = fun (inS' k n)
+--inS k n = makeFun "inSkN" False
  
 --winner choosing function  
 f' k n = 
@@ -58,8 +59,8 @@ f' k n =
   ((sums (map arg [0..(n-1)])) .% (con n) .+ con 1)]
 
 f:: Int -> Int -> Function Int
---f k n = fun (f' k n)
-f k n = makeFun "fkn" False
+f k n = fun (f' k n)
+--f k n = makeFun "fkn" False
 
 sA = var "sA"
 sB = var "sB"
@@ -95,4 +96,5 @@ testC c = do
   putStrLn ("Var bindings"++((\(x,y) -> show y) c))
   putStrLn (compile c)
 
-main = (testC (inS' 3 2)) >> (testC (compute 3 2 30 40 50 60 70 80))
+main = testC (compute 3 2 30 40 50 60 70 80)
+--(testC (inS' 3 2)) >> (testC (compute 3 2 30 40 50 60 70 80))

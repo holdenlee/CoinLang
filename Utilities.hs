@@ -160,4 +160,4 @@ mapFst :: (a -> b) -> (a,c) -> (b,c)
 mapFst f (x,y) = (f x, y)
 
 debug x y = x
---flip trace
+--debug = flip trace

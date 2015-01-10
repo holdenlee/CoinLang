@@ -103,8 +103,9 @@ stepCompile circ2 inList outList (str, b, top, dones) =
                       --if the program runs correctly there should be no problem with the removeJust
                       --look up the stack positions of those indices
                       --does not take into account the savings you get from things at the top that will not be used any longer...
-                      stackPoss = map2d (removeJust.(flip Data.Bimap.lookup b)) (unevalIns3 `debug` ("unevalIns3" ++ show unevalIns3))
-                      stackPoss2 = map (\(i,ss) -> if isSym (circ2!!i) then sort ss else ss) $ zip unevalInds2 stackPoss `debug` ("sp: "++ show stackPoss)
+                      stackPoss' = map2d (removeJust.(flip Data.Bimap.lookup b)) (unevalIns3 `debug` ("unevalIns3 " ++ show unevalIns3 ++"\nunevalInds2 " ++ show unevalInds2))
+                      stackPoss = stackPoss' `debug` ("sp: "++show stackPoss')
+                      stackPoss2 = map (\(i,ss) -> if isSym (circ2!!i) then sort ss else ss) $ zip unevalInds2 stackPoss `debug` ("sp2: "++ show stackPoss)
                       (bestSP, (bestIns,bestInd)) = (mapFst revneg) $ minimum $ zip ((map revneg) stackPoss2) $ zip unevalIns3 unevalInds2
                       --this is the index of the next guy, and the stack positions of its arguments
                       --origB::Bimap Int Int
@@ -120,8 +121,8 @@ stepCompile circ2 inList outList (str, b, top, dones) =
                       topB' = case (circ2!!bestInd `debug` ("inps: " ++ (show inps))) of
                                --symmetric case
                                Fun _ True _ ->
-                                   loopUntil (\i -> i<0 || not (i `elem` (map (indexToStackPos b) bestIns))) (\i -> i-1) top
---keep subtracting 1 from i until i<0 or there is no input at stack position i.
+                                   loopUntil (\i -> i<0 || not (i `elem` (map (indexToStackPos b) bestIns)) || willAppears!!((removeJust $ lookupR i b))) (\i -> i-1) top
+--keep subtracting 1 from i until i<0 or there is no input at stack position i OR the input at position i will appear again!.
                                --not symmetric case
                                _ -> 
                                    if fst (loopUntil 
