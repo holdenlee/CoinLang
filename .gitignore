@@ -13,3 +13,7 @@
 *.ini
 *.ini-save
 *.old
+.metadata
+CoinJoin
+.metadata/
+CoinJoin/
