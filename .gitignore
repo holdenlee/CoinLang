@@ -4,9 +4,12 @@
 *.hi
 *.o
 *.exe
-*.pdf
 
 # Miscellaneous files #
 #######################
 
 *~
+*.pdf
+*.ini
+*.ini-save
+*.old
