@@ -19,8 +19,11 @@ Compile to bitcoin script and print out using the following. (Here 999 is the pu
 
     main = putStrLn (compile (std_trans 999))
 
-See ScriptDefs.hs for how to include various script functions.
+See ScriptDefs.hs for how to include various script functions. Important: always remember to flag constants with "con", else you will get a compilation error.
 
 Todo:
 
-* Compile if-then-else statements.
+* Test compilation of if-then-else statements.
+* Create a pay-to-script-sig transaction from a regular script.
+* (Optional) Make OP_VERIFY's manual (using an operator like (?))
+

@@ -30,6 +30,7 @@ eq = makeFun "OP_EQUAL" True
 (.=) x y = eq [x,y]
 hash = makeFun "OP_HASH160" False
 h x = hash [x]
+hash256 = makeFun "OP_HASH256" False
 ver = makeFun "OP_CHECKSIG" False
 size = makeFun "OP_SIZE OP_NIP" False
 --note OP_SIZE does not pop, so OP_NIP is for consistency.

@@ -42,17 +42,6 @@ type BI = Bimap Int Int
 indexToStackPos :: BI -> Int -> Int
 indexToStackPos b i = removeJust $ Data.Bimap.lookup i (b `debug` ("(b,i):" ++ show (b,i)))
 
-bimapStart:: Int -> [[Int]] -> (Int, BI, String)
-bimapStart numArgs outs =
-    let 
-        (count, bmap, _, s) = loopUntil 
-                              (\(counter, b, i, str) -> i == numArgs) 
-                              (\(counter, b, i, str) -> if outs!!i == [] 
-                                                   then (counter, b, i+1, str ++ (show (numArgs - 1 - i)) ++ " OP_ROLL OP_DROP ")
-                                                   else (counter + 1, Data.Bimap.insert i counter b, i+1, str)) (0,Data.Bimap.empty,0, "")
-    in
-      (count, bmap, s)
-
 compile:: Circuit2 Int -> String
 compile circ = let
     --replace each Fun "f" [x,y,...] with Fun "f" [Arg x0, Arg y0,...]
@@ -67,6 +56,8 @@ compile circ = let
                               _ -> False
                  ) 
              (zip [0..] circ2)
+    bimap::Bimap Int Int
+    bimap = Data.Bimap.fromList $ map (\x-> (x,x)) [0..(numArgs - 1)] `debug` ("dones0: " ++ show dones0)
     inList::[[Int]]
     --inList!!j is a list of all gates leading to j
     inList' = map (\x -> case x of Fun s _ li -> map removeArg li
@@ -76,12 +67,11 @@ compile circ = let
     --outList!!j is a list of all gates leading from j
     outList' = map (\i -> findIndices (\j -> i `elem` (inList!!j)) [0..(length circ2 - 1)]) [0..(length circ2 - 1)] 
     outList = outList' `debug` ("\nout: " ++ show outList')
-    (count, bimap, str0) = bimapStart numArgs outList
     (prog, _, _, _) = loopUntil
                       (\(x1,x2,x3,z) -> --trace ("step \n" ++ show (x1,x2,x3)) $ 
                                         and z) --all z are True
                       (stepCompile circ2 inList outList)
-                      (str0, bimap, count - 1, dones0)
+                      ("", bimap, numArgs - 1, dones0)
   in prog |> postProcess
 
 
@@ -235,9 +225,3 @@ fun::Circuit2 Int -> ([Circuit2 Int] -> Circuit2 Int)
 fun f = makeFun (reverse $ tail $ reverse $ compile f) False
 --delete the space at the end
 
-ifthenelse :: Circuit2 Int -> Circuit2 Int -> Circuit2 Int -> [Circuit2 Int] -> Circuit2 Int
-ifthenelse f g h args = 
-    (makeFun ("OP_IF " ++ (compile g) ++ "OP_ELSE " ++ (compile h) ++ "OP_END") False) (args ++ [f])
-
-ifscript :: Int -> Circuit2 Int -> [Circuit2 Int] -> [Circuit2 Int] ->  Circuit2 Int
-ifscript n f g h = ifthenelse f (script $ [inputs n] ++ g) (script $ [inputs n] ++ h) $ map arg [0..(n-1)]

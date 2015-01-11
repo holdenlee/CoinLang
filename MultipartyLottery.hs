@@ -1,4 +1,4 @@
-module Main where
+module MultipartyLottery where
 
 import Data.List
 import Data.Maybe
@@ -8,28 +8,7 @@ import Compiler
 import CircuitViz
 import Utilities
 
-std_trans::Int -> Circuit2 Int
-std_trans pkh =
-  inputs 2 .>
-  ver [arg 0, arg 1] .>
-  eq [con pkh, hash [arg 1]]
-
---std_trans_f x = makeFun "OP_CHECKSIG" False
-std_trans_f x = fun (std_trans x)
-
-{-
-commit x pk_c pk_p = 
- script [
-  inputs 4,
-  ifelse (arg 3)
-         (script [
-           h [arg 3] .= h,
-           ver [arg 0, pk_c]]
-          )
-         (script [
-           ver [arg 0, pk_c],
-           ver [arg 1, pk_p]])]
--}
+import Verify
 
 s = var "s"
 --k is security parameter, n is number of people
@@ -51,16 +30,15 @@ inS k n = fun (inS' k n)
 --inS k n = makeFun "inSkN" False
  
 --winner choosing function  
-f' k n = 
+winner' k n = 
  script [
 --n inputs representing the strings chosen by n players
   inputs n,
---sum [arg 0, arg 1,..., arg (n-1)] mod n + 1 is the winning player.
-  ((sums (map arg [0..(n-1)])) .% (con n) .+ con 1)]
+--sum [arg 0, arg 1,..., arg (n-1)] mod n is the winning player.
+  (sums (map arg [0..(n-1)])) .% (con n)]
 
-f:: Int -> Int -> Function Int
-f k n = fun (f' k n)
---f k n = makeFun "fkn" False
+winner k n = fun (winner' k n)
+--winner k n = makeFun "fkn" False
 
 sA = var "sA"
 sB = var "sB"
@@ -68,33 +46,43 @@ s1 = var "s1"
 s2 = var "s2"
 body = var "body"
 
-compute:: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Circuit2 Int
-compute k n a b a' b' h_A h_B = 
+--the 2-party version with stronger security
+compute2' k pk_a pk_b h_A h_B = 
  let 
-   inSkN = inS k n
-   fkn = f k n
+   inSkN = inS k 2
+   fkn = winner k 2
  in
   script [
-   inputvars ["body", "s1", "s2", "sA", "sB"],
+   inputvars ["s1", "s2", "sA", "sB"],
 --sA,sB are in SkN, and the hash of sA and sB are hA and hB
-   ((inSkN [sA] .& inSkN [sB] .& (hash [sA] .= con h_A) .& (hash [sB] .= con h_B)) .&
+   ((inSkN [sA] .& inSkN [sB] .& (hash256 [sA] .= con h_A) .& (hash256 [sB] .= con h_B)) .&
 --and EITHER the winner is a and the signature matches a's, or the winner is b and the signature matches b's, or we have both signatures
-    ((fkn [sA, sB] .= con a) .& ((std_trans_f a') [body, s1]) .|
-     (fkn [sA, sB] .= con b) .& ((std_trans_f b') [body, s2]))) .|
-    ((std_trans_f a') [s1] .& (std_trans_f b') [s2])]
+    ((fkn [sA, sB] .= con 0) .& ((simple_ver pk_a) [s1]) .|
+     (fkn [sA, sB] .= con 1) .& ((simple_ver pk_b) [s2]))) .|
+    ((simple_ver pk_a) [s1] .& (simple_ver pk_b) [s2])]
 
-testC::Circuit2 Int -> IO ()
-testC c = do
-{-  putStrLn ("Circuit: "++(show c))
-  putStrLn ("Circuit replaced: "++(show $ replaceArgs c))
-  let c' =  inTermsOfArgs $ replaceArgs c
-  putStrLn ("Circuit in terms of args: "++(show c'))
-  let ins = map (\x -> case x of Fun s _ li -> map removeArg li
-                                 _ -> []
-                 ) c'
-  putStrLn ("dot graph: "++ (c' |> (circToGraph ins) |> graphToDot))
-  putStrLn ("Var bindings"++((\(x,y) -> show y) c))-}
-  putStrLn (compile c)
+--PutMoney^B in the secure 2-party lottery
+putMoneyB' k pk_B h_B = 
+ script [
+  inputvars ["s2", "sB"],
+  (simple_ver pk_B) [s2],
+  (inS k 2) [sB],
+  hash256 [sB] .= con h_B]
 
-main = testC (compute 3 2 30 40 50 60 70 80)
---(testC (inS' 3 2)) >> (testC (compute 3 2 30 40 50 60 70 80))
+computeN' k pks hs = 
+    let 
+        n = length pks
+        --arg 0 is the signature
+        sig = arg 0
+        --[arg 1,...,arg n] are the s_i
+        ss = map arg [1..n]
+    in
+      script [
+        inputs (n+1),
+        --band means "boolean and" all of these
+        --are s_1,...,s_N \in S_k^N?
+        band $ map (\s_i -> inS k n [s_i]) ss,
+        --are H(s_i)=h_i for all i?
+        band $ map (\(s_i, h_i) -> hash256 [s_i] .= con h_i) (zip ss hs),
+        --for some i, is f(s_1,...,s_N) = i (the winner is i) and ver_i(sig) (the winner signs)?
+        bor $ map (\i -> ((winner k n) ss .= con i) .& (simple_ver (pks!!i)) [sig]) [0..(n-1)]]
