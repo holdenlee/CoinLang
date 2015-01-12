@@ -47,8 +47,8 @@ sums li =
     let 
         n = length li
     in
-      makeFun (cutLast $ concat $ replicate (n-1) "OP_SUM ") True li
-add = makeFun "OP_SUM" True
+      makeFun (cutLast $ concat $ replicate (n-1) "OP_ADD ") True li
+add = makeFun "OP_ADD" True
 (.+) x y = add [x,y]
 
 band = makeFun "OP_BOOLAND" True
