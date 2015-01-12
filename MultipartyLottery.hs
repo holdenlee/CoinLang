@@ -34,8 +34,8 @@ winner' k n =
  script [
 --n inputs representing the strings chosen by n players
   inputs n,
---sum [arg 0, arg 1,..., arg (n-1)] mod n is the winning player.
-  (sums (map arg [0..(n-1)])) .% (con n)]
+--sum [size [arg 0], size [arg 1],..., size [arg (n-1)]] mod n is the winning player.
+  (sums (map (\x -> size [arg x]) [0..(n-1)])) .% (con n)]
 
 winner k n = fun (winner' k n)
 --winner k n = makeFun "fkn" False
@@ -44,7 +44,6 @@ sA = var "sA"
 sB = var "sB"
 s1 = var "s1"
 s2 = var "s2"
-body = var "body"
 
 --the 2-party version with stronger security
 compute2' k pk_a pk_b h_A h_B = 
@@ -81,8 +80,8 @@ computeN' k pks hs =
         inputs (n+1),
         --band means "boolean and" all of these
         --are s_1,...,s_N \in S_k^N?
-        band $ map (\s_i -> inS k n [s_i]) ss,
+        bands $ map (\s_i -> inS k n [s_i]) ss,
         --are H(s_i)=h_i for all i?
-        band $ map (\(s_i, h_i) -> hash256 [s_i] .= con h_i) (zip ss hs),
+        bands $ map (\(s_i, h_i) -> hash256 [s_i] .= con h_i) (zip ss hs),
         --for some i, is f(s_1,...,s_N) = i (the winner is i) and ver_i(sig) (the winner signs)?
-        bor $ map (\i -> ((winner k n) ss .= con i) .& (simple_ver (pks!!i)) [sig]) [0..(n-1)]]
+        bors $ map (\i -> ((winner k n) ss .= con i) .& (simple_ver (pks!!i)) [sig]) [0..(n-1)]]

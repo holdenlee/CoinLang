@@ -53,8 +53,20 @@ add = makeFun "OP_SUM" True
 
 band = makeFun "OP_BOOLAND" True
 (.&) x y = band [x,y]
+bands li = 
+    let 
+        n = length li
+    in
+      makeFun (cutLast $ concat $ replicate (n-1) "OP_BOOLAND ") True li
+--bands = foldr1 (.&)
 bor = makeFun "OP_BOOLOR" True
 (.|) x y = bor [x,y]
+bors li = 
+    let 
+        n = length li
+    in
+      makeFun (cutLast $ concat $ replicate (n-1) "OP_BOOLOR ") True li
+--bors = foldr1 (.|)
 
 cutLast::[a] -> [a]
 cutLast li = reverse $ tail $ reverse li
