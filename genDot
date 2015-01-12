@@ -1,0 +1,4 @@
+#!/bin/bash
+
+dot -Tpdf verify.dot > verify.pdf
+dot -Tpdf compute2.dot > compute2.pdf

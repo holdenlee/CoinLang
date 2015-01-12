@@ -33,10 +33,7 @@ verboseTestC c = do
   putStrLn ("Circuit replaced: "++(show $ replaceArgs c))
   let c' =  inTermsOfArgs $ replaceArgs c
   putStrLn ("Circuit in terms of args: "++(show c'))
-  let ins = map (\x -> case x of Fun s _ li -> map removeArg li
-                                 _ -> []
-                 ) c'
-  putStrLn ("dot graph: "++ (c' |> (circToGraph ins) |> graphToDot))
+  putStrLn ("dot graph: "++ (c' |> (circToGraph) |> graphToDot'))
   putStrLn ("Var bindings"++((\(x,y) -> show y) c))
   putStrLn (compile c)
 
