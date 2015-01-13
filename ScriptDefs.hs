@@ -68,5 +68,7 @@ bors li =
       makeFun (cutLast $ concat $ replicate (n-1) "OP_BOOLOR ") True li
 --bors = foldr1 (.|)
 
+multiver = makeFun "OP_CHECKMULTISIG" False
+
 cutLast::[a] -> [a]
 cutLast li = reverse $ tail $ reverse li
