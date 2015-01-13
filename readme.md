@@ -1,3 +1,7 @@
+# CoinLang #
+
+CoinLang gives a way to write Bitcoin scripts in a higher-level functional programming language rather than the stack-based language.
+
 Example of use:
 
 Define a standard transaction.
