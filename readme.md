@@ -135,8 +135,7 @@ sample_scripts/: Compiled scripts.
 
 # Todo #
 
-* Test compilation of if-then-else statements.
 * Create a pay-to-script-sig transaction from a regular script.
-* (Optional) Make OP_VERIFY's manual (using an operator like (?))
+* Make OP_VERIFY's manual (using an operator like (?))
 
 Description of Bitcoin script: http://chimera.labs.oreilly.com/books/1234000001802/ch05.html#tx_script
