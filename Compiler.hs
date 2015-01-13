@@ -13,6 +13,13 @@ import Utilities
 import Debug.Trace -- temporary
 import Data.List.Utils
 import Numeric
+import Data.String.Utils
+import Data.Char
+
+--areDigits = all isDigit
+--isDigit  selects ASCII digits
+--isOctDigit selects '0' '1' '2' '3' '4' '5' '6' '7'
+--isHexDigit selects '0' '1' '2' '3' '4' '5' '6' '7' '8' '9' 'a' 'b' 'c' 'd' 'e' 'f'
 
 byList :: (forall a. (a -> d) -> [a] -> [a]) -> ((a -> d) -> ([a], [b]) -> ([a],[b]))
 byList f g (as,bs) = unzip $ f (\(x,y) -> g x) (zip as bs)
@@ -200,7 +207,7 @@ process circ ins outs bestInd i (str, b, btemp, top, dones) =
         case circ!!i of
           Const x -> 
               let 
-                  str2 = str ++ (numToHex x) ++ " "
+                  str2 = str ++ numToHex (length (numToHex x)) ++ (numToHex x) ++ " "
                   btemp2 = btemp |> Data.Bimap.insert i (top + 1)
                   top2= top + 1
               in
@@ -247,12 +254,13 @@ ifscript :: Int -> Circuit2 Int -> [Circuit2 Int] -> [Circuit2 Int] ->  Circuit2
 ifscript n f g h = ifthenelse f (script $ [inputs n] ++ g) (script $ [inputs n] ++ h) $ map arg [0..(n-1)]
 
 toHex :: String -> String
-toHex s = foldl (\x (y,z) -> replace y (numTo2Hex z) x) s scriptMap
+toHex s = Data.List.filter (/= ' ') (foldl (\x (y,z) -> replace y (numToHex z) x) s scriptMap)
 
 numTo2Hex :: Int -> String
 numTo2Hex i = 
   let 
     s = showHex i ""
+
   in
     if length s < 2 then "0"++s else s
 
