@@ -272,7 +272,7 @@ padOdd :: String -> String
 padOdd s = if (length s) `mod` 2 == 1 then '0':s else s
 
 numToHex :: Int -> String
-numToHex i = padOdd (showHex (ceiling $ (length (showHex i "")) / 2.0) "") ++ padOdd (showHex i "")
+numToHex i = padOdd (showHex ( quot ((length (showHex i "")) + 1) 2) "") ++ padOdd (showHex i "")
 
 scriptMap :: [(String, Int)]
 scriptMap = [
