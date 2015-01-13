@@ -1,7 +1,6 @@
 module Verify where
 
 import Data.List
-import Data.Maybe
 import Circuit
 import ScriptDefs
 import Compiler
