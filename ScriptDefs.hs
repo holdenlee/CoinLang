@@ -43,13 +43,15 @@ ge = makeFun "OP_GREATERTHANOREQUAL" False
 within = makeFun "OP_WITHIN" False
 md = makeFun "OP_MOD" False
 (.%) x y = md [x,y]
+add = makeFun "OP_ADD" True
+(.+) x y = add [x,y]
 sums li = 
     let 
         n = length li
     in
       makeFun (cutLast $ concat $ replicate (n-1) "OP_ADD ") True li
-add = makeFun "OP_ADD" True
-(.+) x y = add [x,y]
+--alternative: is easier
+--bands = foldr1 (.+)
 
 band = makeFun "OP_BOOLAND" True
 (.&) x y = band [x,y]
@@ -58,6 +60,7 @@ bands li =
         n = length li
     in
       makeFun (cutLast $ concat $ replicate (n-1) "OP_BOOLAND ") True li
+--alternative: is easier
 --bands = foldr1 (.&)
 bor = makeFun "OP_BOOLOR" True
 (.|) x y = bor [x,y]
@@ -66,8 +69,10 @@ bors li =
         n = length li
     in
       makeFun (cutLast $ concat $ replicate (n-1) "OP_BOOLOR ") True li
+--alternative: is easier
 --bors = foldr1 (.|)
 
+ret = makeFun "OP_RETURN" True
 multiver = makeFun "OP_CHECKMULTISIG" False
 
 cutLast::[a] -> [a]

@@ -32,7 +32,7 @@ simple_ver x = fun $ simple_ver' x
 unspendable' = 
 	script [
 	 inputs 2,
-	 ret[arg 0, arg 1]]
+	 ret [arg 0, arg 1]]
 
 --To spend the transaction, need to come up with some data such that hashing the data twice results in the given hash. 
 --p is the given hash puzzle
