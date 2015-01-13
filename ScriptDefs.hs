@@ -26,7 +26,6 @@ infix 4 .=
 infixl 6 .+
 infixl 7 .%
 
-ret = makeFun "OP_RETURN" False
 eq = makeFun "OP_EQUAL" True
 (.=) x y = eq [x,y]
 hash = makeFun "OP_HASH160" False
