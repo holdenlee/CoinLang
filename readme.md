@@ -139,3 +139,4 @@ sample_scripts/: Compiled scripts.
 * Create a pay-to-script-sig transaction from a regular script.
 * (Optional) Make OP_VERIFY's manual (using an operator like (?))
 
+Description of Bitcoin script: http://chimera.labs.oreilly.com/books/1234000001802/ch05.html#tx_script
