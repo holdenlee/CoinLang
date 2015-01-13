@@ -207,7 +207,7 @@ process circ ins outs bestInd i (str, b, btemp, top, dones) =
         case circ!!i of
           Const x -> 
               let 
-                  str2 = str ++ numToHex (length (numToHex x)) ++ (numToHex x) ++ " "
+                  str2 = str ++ (numToHex x) ++ " "
                   btemp2 = btemp |> Data.Bimap.insert i (top + 1)
                   top2= top + 1
               in
@@ -253,8 +253,12 @@ ifthenelse f g h args =
 ifscript :: Int -> Circuit2 Int -> [Circuit2 Int] -> [Circuit2 Int] ->  Circuit2 Int
 ifscript n f g h = ifthenelse f (script $ [inputs n] ++ g) (script $ [inputs n] ++ h) $ map arg [0..(n-1)]
 
+isInteger s = case reads s :: [(Integer, String)] of
+  [(_, "")] -> True
+  _         -> False
+
 toHex :: String -> String
-toHex s = Data.List.filter (/= ' ') (foldl (\x (y,z) -> replace y (numToHex z) x) s scriptMap)
+toHex s = Data.List.filter (/= ' ') (foldl (\x (y,z) -> replace y (numTo2Hex z) x) s scriptMap)
 
 numTo2Hex :: Int -> String
 numTo2Hex i = 
@@ -264,8 +268,11 @@ numTo2Hex i =
   in
     if length s < 2 then "0"++s else s
 
+padOdd :: String -> String
+padOdd s = if (length s) `mod` 2 == 1 then '0':s else s
+
 numToHex :: Int -> String
-numToHex i = showHex i ""
+numToHex i = padOdd (showHex (ceiling $ (length (showHex i "")) / 2.0) "") ++ padOdd (showHex i "")
 
 scriptMap :: [(String, Int)]
 scriptMap = [
